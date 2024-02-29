@@ -12,7 +12,7 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed (default: 1)')
 parser.add_argument('--k', type=int, default=10,
                     help='number of splits (default: 10)')
-parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal', 'task_2_tumor_subtyping'])
+parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal', 'task_2_tumor_subtyping', 'cvm_test', 'cvm_test_subtyping_kidney', 'cvm_test_subtyping_lung'])
 parser.add_argument('--val_frac', type=float, default= 0.1,
                     help='fraction of labels for validation (default: 0.1)')
 parser.add_argument('--test_frac', type=float, default= 0.1,
@@ -39,6 +39,36 @@ elif args.task == 'task_2_tumor_subtyping':
                             label_dict = {'subtype_1':0, 'subtype_2':1, 'subtype_3':2},
                             patient_strat= True,
                             patient_voting='maj',
+                            ignore=[])
+
+elif args.task == 'cvm_test':
+    args.n_classes=2
+    dataset = Generic_WSI_Classification_Dataset(csv_path = '/data/git/CLAM/dataset_csv/cvm_test.csv',
+                            shuffle = False,
+                            seed = args.seed,
+                            print_info = True,
+                            label_dict = {'normal_tissue':0, 'tumor_tissue':1},
+                            patient_strat=True,
+                            ignore=[])
+
+elif args.task == 'cvm_test_subtyping_kidney':
+    args.n_classes=3
+    dataset = Generic_WSI_Classification_Dataset(csv_path = '/data/git/CLAM/dataset_csv/cvm_test_subtyping.kidney.csv',
+                            shuffle = False,
+                            seed = args.seed,
+                            print_info = True,
+                            label_dict = {'enteritis':0, 'emerging':1, 'epitheliotropic':2},
+                            patient_strat=True,
+                            ignore=[])
+
+elif args.task == 'cvm_test_subtyping_lung':
+    args.n_classes=2
+    dataset = Generic_WSI_Classification_Dataset(csv_path = '/data/git/CLAM/dataset_csv/cvm_test_subtyping.lung.csv',
+                            shuffle = False,
+                            seed = args.seed,
+                            print_info = True,
+                            label_dict = {'enteritis':0, 'epitheliotropic':1},
+                            patient_strat=True,
                             ignore=[])
 
 else:
