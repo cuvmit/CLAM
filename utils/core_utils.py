@@ -87,7 +87,7 @@ class EarlyStopping:
         torch.save(model.state_dict(), ckpt_name)
         self.val_loss_min = val_loss
 
-def train(datasets, cur, args):
+def train(datasets, cur, args, fine_tune_ckpt_path=None):
     """   
         train for a single fold
     """
@@ -154,7 +154,26 @@ def train(datasets, cur, args):
             model = MIL_fc_mc(**model_dict)
         else:
             model = MIL_fc(**model_dict)
-    
+
+    if fine_tune_ckpt_path:
+        ckpt = torch.load(fine_tune_ckpt_path)
+        ckpt_clean = {}
+        for key in ckpt.keys():
+            if 'instance_loss_fn' in key:
+                continue
+            ckpt_clean.update({key.replace('.module', ''):ckpt[key]})
+        model.load_state_dict(ckpt_clean, strict=False)
+
+        model_blocks = [
+            n for n, subm in model.named_children()
+            if len(list(subm.parameters())) > 0
+        ]
+        fine_tuning_blocks = model_blocks[-args.fine_tune_depth:]
+        print('Fine-tuning model blocks: ', fine_tuning_blocks)
+        for n, p in model.named_parameters():
+            if n.split('.')[0] not in fine_tuning_blocks:
+                p.requires_grad_(False)
+
     model.relocate()
     print('Done!')
     print_network(model)

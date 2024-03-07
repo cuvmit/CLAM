@@ -46,7 +46,10 @@ def main(args):
                 csv_path='{}/splits_{}.csv'.format(args.split_dir, i))
         
         datasets = (train_dataset, val_dataset, test_dataset)
-        results, test_auc, val_auc, test_acc, val_acc  = train(datasets, i, args)
+        fine_tune_ckpt_path = None
+        if args.fine_tune_ckpt:
+            fine_tune_ckpt_path = os.path.join(args.fine_tune_ckpt, 's_{}_checkpoint.pt'.format(i))
+        results, test_auc, val_auc, test_acc, val_acc  = train(datasets, i, args, fine_tune_ckpt_path)
         all_test_auc.append(test_auc)
         all_val_auc.append(val_auc)
         all_test_acc.append(test_acc)
@@ -97,7 +100,7 @@ parser.add_argument('--model_type', type=str, choices=['clam_sb', 'clam_mb', 'mi
 parser.add_argument('--exp_code', type=str, help='experiment code for saving results')
 parser.add_argument('--weighted_sample', action='store_true', default=False, help='enable weighted sampling')
 parser.add_argument('--model_size', type=str, choices=['small', 'big'], default='small', help='size of model, does not affect mil')
-parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal',  'task_2_tumor_subtyping'])
+parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal', 'task_2_tumor_subtyping', 'cvm_subtyping_fine_tune'])
 ### CLAM specific options
 parser.add_argument('--no_inst_cluster', action='store_true', default=False,
                      help='disable instance-level clustering')
@@ -107,6 +110,8 @@ parser.add_argument('--subtyping', action='store_true', default=False,
                      help='subtyping problem')
 parser.add_argument('--bag_weight', type=float, default=0.7,
                     help='clam: weight coefficient for bag-level loss (default: 0.7)')
+parser.add_argument('--fine_tune_ckpt', type=str, default=None, help='checkpoint to use as a base for fine-tuning')
+parser.add_argument('--fine_tune_depth', type=int, default=1, help='number of layers to fine-tune')
 parser.add_argument('--B', type=int, default=8, help='numbr of positive/negative patches to sample for clam')
 args = parser.parse_args()
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -171,6 +176,17 @@ elif args.task == 'task_2_tumor_subtyping':
                             print_info = True,
                             label_dict = {'subtype_1':0, 'subtype_2':1, 'subtype_3':2},
                             patient_strat= False,
+                            ignore=[])
+
+elif args.task == 'cvm_subtyping_fine_tune':
+    args.n_classes=2
+    dataset = Generic_MIL_Dataset(csv_path = '/data/git/CLAM/dataset_csv/cvm_subtyping_fine_tune.csv',
+                            data_dir= os.path.join(args.data_root_dir, 'FEATURES_DIRECTORY'),
+                            shuffle = False,
+                            seed = args.seed,
+                            print_info = True,
+                            label_dict = {'enteritis':0, 'epitheliotropic':1},
+                            patient_strat=False,
                             ignore=[])
 
     if args.model_type in ['clam_sb', 'clam_mb']:
