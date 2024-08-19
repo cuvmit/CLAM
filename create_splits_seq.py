@@ -77,7 +77,7 @@ elif args.task == 'cvm_subtyping_fine_tune':
                             shuffle = False,
                             seed = args.seed,
                             print_info = True,
-                            label_dict = {'enteritis':0, 'epitheliotropic':1},
+                            label_dict = {'enteritis':0, 'lymphoma':1},
                             patient_strat=True,
                             ignore=[])
 
