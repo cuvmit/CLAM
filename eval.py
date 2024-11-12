@@ -41,7 +41,7 @@ parser.add_argument('--fold', type=int, default=-1, help='single fold to evaluat
 parser.add_argument('--micro_average', action='store_true', default=False, 
                     help='use micro_average instead of macro_avearge for multiclass AUC')
 parser.add_argument('--split', type=str, choices=['train', 'val', 'test', 'all'], default='test')
-parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal',  'task_2_tumor_subtyping', 'cvm_test', 'cvm_test_subtyping_kidney', 'cvm_test_subtyping_lung'])
+parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal',  'task_2_tumor_subtyping', 'cvm_test', 'cvm_test_subtyping_kidney', 'cvm_test_subtyping_lung', 'cvm_subtyping_fine_tune'])
 args = parser.parse_args()
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -117,6 +117,16 @@ elif args.task == 'cvm_test_subtyping_lung':
                             shuffle = False,
                             print_info = True,
                             label_dict = {'enteritis':0, 'epitheliotropic':1},
+                            patient_strat=False,
+                            ignore=[])
+
+elif args.task == 'cvm_subtyping_fine_tune':
+    args.n_classes=2
+    dataset = Generic_MIL_Dataset(csv_path = '/data/git/CLAM/dataset_csv/cvm_subtyping_fine_tune.csv',
+                            data_dir= os.path.join(args.data_root_dir, 'FEATURES_DIRECTORY'),
+                            shuffle = False,
+                            print_info = True,
+                            label_dict = {'enteritis':0, 'lymphoma':1},
                             patient_strat=False,
                             ignore=[])
 
