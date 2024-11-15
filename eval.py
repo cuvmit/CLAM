@@ -163,6 +163,15 @@ if __name__ == "__main__":
     all_results = []
     all_auc = []
     all_acc = []
+    combinedPlot = plt.figure()
+    combinedPlot.title('Receiver Operating Characteristic')
+    combinedPlot.plot(fpr,tpr,label="checkpoint " + str(ckpt_idx) + ", auc="+str(auc))
+    combinedPlot.plot([0, 1], [0, 1],'r--')
+    combinedPlot.xlim([0, 1])
+    combinedPlot.ylim([0, 1.1])
+    combinedPlot.ylabel('True Positive Rate')
+    combinedPlot.xlabel('False Positive Rate')
+    combinedPlot.savefig(os.path.join(args.save_dir, "roc_checkpoint_" + str(ckpt_idx) + ".png"))
     for ckpt_idx in range(len(ckpt_paths)):
         if datasets_id[args.split] < 0:
             split_dataset = dataset
@@ -175,15 +184,17 @@ if __name__ == "__main__":
         all_auc.append(auc)
         all_acc.append(1-test_error)
         df.to_csv(os.path.join(args.save_dir, 'fold_{}.csv'.format(folds[ckpt_idx])), index=False)
-        plt.title('Receiver Operating Characteristic')
-        plt.plot(fpr,tpr,label="checkpoint " + str(ckpt_idx) + ", auc="+str(auc))
-        plt.legend(loc = 'lower right')
-        plt.plot([0, 1], [0, 1],'r--')
-        plt.xlim([0, 1])
-        plt.ylim([0, 1.1])
-        plt.ylabel('True Positive Rate')
-        plt.xlabel('False Positive Rate')
-        plt.savefig(os.path.join(args.save_dir, "roc_checkpoint_" + str(ckpt_idx) + ".png"))
+        combinedPlot.plot(fpr, tpr, label="checkpoint " + str(ckpt_idx) + ", auc="+str(auc))
+        f = plt.figure()
+        f.title('Receiver Operating Characteristic')
+        f.plot(fpr, tpr, label="checkpoint " + str(ckpt_idx) + ", auc="+str(auc))
+        f.plot([0, 1], [0, 1],'r--')
+        f.xlim([0, 1])
+        f.ylim([0, 1.1])
+        f.ylabel('True Positive Rate')
+        f.xlabel('False Positive Rate')
+        f.savefig(os.path.join(args.save_dir, "roc_checkpoint_" + str(ckpt_idx) + ".png"))
+    combinedPlot.savefig(os.path.join(args.save_dir, "roc_combined.png"))
 
     final_df = pd.DataFrame({'folds': folds, 'test_auc': all_auc, 'test_acc': all_acc})
     if len(folds) != args.k:
