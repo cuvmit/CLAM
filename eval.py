@@ -41,7 +41,7 @@ parser.add_argument('--fold', type=int, default=-1, help='single fold to evaluat
 parser.add_argument('--micro_average', action='store_true', default=False, 
                     help='use micro_average instead of macro_avearge for multiclass AUC')
 parser.add_argument('--split', type=str, choices=['train', 'val', 'test', 'all'], default='test')
-parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal',  'task_2_tumor_subtyping', 'cvm_test', 'cvm_test_subtyping_kidney', 'cvm_test_subtyping_lung'])
+parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal',  'task_2_tumor_subtyping', 'cvm_test', 'cvm_test_subtyping_kidney', 'cvm_test_subtyping_lung', 'cvm_subtyping_fine_tune'])
 args = parser.parse_args()
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -120,6 +120,16 @@ elif args.task == 'cvm_test_subtyping_lung':
                             patient_strat=False,
                             ignore=[])
 
+elif args.task == 'cvm_subtyping_fine_tune':
+    args.n_classes=2
+    dataset = Generic_MIL_Dataset(csv_path = '/data/git/CLAM/dataset_csv/cvm_subtyping_fine_tune.csv',
+                            data_dir= os.path.join(args.data_root_dir, 'FEATURES_DIRECTORY'),
+                            shuffle = False,
+                            print_info = True,
+                            label_dict = {'enteritis':0, 'lymphoma':1},
+                            patient_strat=False,
+                            ignore=[])
+
 # elif args.task == 'tcga_kidney_cv':
 #     args.n_classes=3
 #     dataset = Generic_MIL_Dataset(csv_path = 'dataset_csv/tcga_kidney_clean.csv',
@@ -153,6 +163,15 @@ if __name__ == "__main__":
     all_results = []
     all_auc = []
     all_acc = []
+    combinedPlotNum = 1
+    splitPlotNum = 2
+    plt.figure(num=combinedPlotNum)
+    plt.title('Receiver Operating Characteristic')
+    plt.plot([0, 1], [0, 1],'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1.1])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
     for ckpt_idx in range(len(ckpt_paths)):
         if datasets_id[args.split] < 0:
             split_dataset = dataset
@@ -160,11 +179,25 @@ if __name__ == "__main__":
             csv_path = '{}/splits_{}.csv'.format(args.splits_dir, folds[ckpt_idx])
             datasets = dataset.return_splits(from_id=False, csv_path=csv_path)
             split_dataset = datasets[datasets_id[args.split]]
-        model, patient_results, test_error, auc, df  = eval(split_dataset, args, ckpt_paths[ckpt_idx])
+        model, patient_results, test_error, auc, df, fpr, tpr = eval(split_dataset, args, ckpt_paths[ckpt_idx])
         all_results.append(all_results)
         all_auc.append(auc)
         all_acc.append(1-test_error)
         df.to_csv(os.path.join(args.save_dir, 'fold_{}.csv'.format(folds[ckpt_idx])), index=False)
+        plt.figure(num=combinedPlotNum)
+        plt.plot(fpr, tpr, label="checkpoint " + str(ckpt_idx) + ", auc="+str(auc))
+        plt.figure(num=splitPlotNum)
+        plt.title('Receiver Operating Characteristic - Checkpoint ' + str(ckpt_idx))
+        plt.plot(fpr, tpr, label="checkpoint " + str(ckpt_idx) + ", auc="+str(auc))
+        plt.plot([0, 1], [0, 1],'r--')
+        plt.xlim([0, 1])
+        plt.ylim([0, 1.1])
+        plt.ylabel('True Positive Rate')
+        plt.xlabel('False Positive Rate')
+        plt.savefig(os.path.join(args.save_dir, "roc_checkpoint_" + str(ckpt_idx) + ".png"))
+        plt.clf()
+    plt.figure(num=combinedPlotNum)
+    plt.savefig(os.path.join(args.save_dir, "roc_combined.png"))
 
     final_df = pd.DataFrame({'folds': folds, 'test_auc': all_auc, 'test_acc': all_acc})
     if len(folds) != args.k:
