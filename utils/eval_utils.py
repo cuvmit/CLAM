@@ -10,7 +10,7 @@ import os
 import pandas as pd
 from utils.utils import *
 from utils.core_utils import Accuracy_Logger
-from sklearn.metrics import roc_auc_score, roc_curve, auc
+from sklearn.metrics import roc_auc_score, roc_curve, auc, f1_score
 from sklearn.preprocessing import label_binarize
 import matplotlib.pyplot as plt
 
@@ -50,10 +50,10 @@ def eval(dataset, args, ckpt_path):
     
     print('Init Loaders')
     loader = get_simple_loader(dataset)
-    patient_results, test_error, auc, df, _, fpr, tpr = summary(model, loader, args)
+    patient_results, test_error, auc, df, _, fpr, tpr, f1 = summary(model, loader, args)
     print('test_error: ', test_error)
     print('auc: ', auc)
-    return model, patient_results, test_error, auc, df, fpr, tpr
+    return model, patient_results, test_error, auc, df, fpr, tpr, f1
 
 def summary(model, loader, args):
     acc_logger = Accuracy_Logger(n_classes=args.n_classes)
@@ -97,6 +97,7 @@ def summary(model, loader, args):
         if args.n_classes == 2:
             auc_score = roc_auc_score(all_labels, all_probs[:, 1])
             fpr, tpr, _ = roc_curve(all_labels, all_probs[:, 1])
+            f1 = f1_score(all_labels, all_preds)
         else:
             binary_labels = label_binarize(all_labels, classes=[i for i in range(args.n_classes)])
             for class_idx in range(args.n_classes):
@@ -116,4 +117,4 @@ def summary(model, loader, args):
     for c in range(args.n_classes):
         results_dict.update({'p_{}'.format(c): all_probs[:,c]})
     df = pd.DataFrame(results_dict)
-    return patient_results, test_error, auc_score, df, acc_logger, fpr, tpr
+    return patient_results, test_error, auc_score, df, acc_logger, fpr, tpr, f1
